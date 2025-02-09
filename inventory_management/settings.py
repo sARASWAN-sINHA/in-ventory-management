@@ -41,7 +41,7 @@ DJANGO_INBUILT_APPS = [
     'django.contrib.staticfiles',
 ]
 
-DJANGO_CUSTOM_APPS = ["core", ]
+DJANGO_CUSTOM_APPS = ["core", "userprofile",]
 
 THIRD_PARTY_APPS = [
         "rest_framework",
