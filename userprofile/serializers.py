@@ -5,7 +5,6 @@ from core.models import Profile
 from djoser.serializers import UserSerializer
 
 class ProfileSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
     class Meta:
         model = Profile
         fields = (
@@ -15,7 +14,6 @@ class ProfileSerializer(serializers.ModelSerializer):
             "qualification",
             "phone_number",
             "address",
-            "user",
         )
 
 
@@ -28,9 +26,9 @@ class ProfileSerializer(serializers.ModelSerializer):
         if  value is None or value == "":
             raise serializers.ValidationError("Designation is required.")
         return value
-
-    def to_representation(self, instance):
-        repr = super().to_representation(instance)
-        repr["username"] = instance.user.email
-        return repr
+class CustomUserSerialzer(UserSerializer):
+    profile = ProfileSerializer(read_only=True)
+    class Meta(UserSerializer.Meta):
+        fields = ("email", "is_active", "is_staff", "is_superuser", "profile")
+        read_only_fields = ("email", "is_active", "is_staff", "is_superuser", "profile")
 

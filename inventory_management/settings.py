@@ -10,8 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+from datetime import timedelta
 from pathlib import Path
-
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -41,13 +41,13 @@ DJANGO_INBUILT_APPS = [
     'django.contrib.staticfiles',
 ]
 
-DJANGO_CUSTOM_APPS = ["core", "userprofile",]
+DJANGO_CUSTOM_APPS = ["core", "userprofile", "asset"]
 
 THIRD_PARTY_APPS = [
-        "rest_framework",
-        "djoser",
-        "drf_spectacular",
-    ]
+    "rest_framework",
+    "djoser",
+    "drf_spectacular",
+]
 
 INSTALLED_APPS = DJANGO_INBUILT_APPS + DJANGO_CUSTOM_APPS + THIRD_PARTY_APPS
 
@@ -151,11 +151,20 @@ REST_FRAMEWORK = {
 
 SIMPLE_JWT = {
    'AUTH_HEADER_TYPES': ('JWT',),
+   "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+   "REFRESH_TOKEN_LIFETIME": timedelta(days=10),
 }
 
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'Your Project API',
-    'DESCRIPTION': 'Your project description',
+    'TITLE': 'Asset Inventory Management System',
+    'DESCRIPTION': 'A system to manage the count of assets, different types of assets, and the owners of the assets.',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
+}
+
+DJOSER={
+    'SERIALIZERS': {
+        'user': 'userprofile.serializers.CustomUserSerialzer',
+        'current_user': 'userprofile.serializers.CustomUserSerialzer',
+    }
 }

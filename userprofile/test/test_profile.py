@@ -133,7 +133,6 @@ class PrivateTestProfile(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.data['first_name'], profile.first_name)
         self.assertEqual(res.data['phone_number'], profile.phone_number)
-        self.assertEqual(res.data['username'], profile.user.email)
 
     def test_update_profile(self):
         """Tests updating a user profile with new data."""

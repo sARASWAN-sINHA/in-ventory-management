@@ -129,6 +129,7 @@ class ProfileTestClass(TestCase):
     qualification = "Test qualification"
 
     def create_user(self, email, password):
+        """Creates and returns a user with the given email and password."""
         return get_user_model().objects.create_user(email=email, password=password)
 
     def test_create_profile(self):

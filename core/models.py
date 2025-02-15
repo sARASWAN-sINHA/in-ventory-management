@@ -3,107 +3,10 @@
 
 import uuid
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.core.validators import MinLengthValidator
 
-
-class UserManager(BaseUserManager):
-    """
-    Custom user manager for handling user creation and superuser creation.
-
-    Methods
-    -------
-    create_user(email, password, **extra_fields)
-        Creates and returns a regular user with the given email and password.
-
-    create_superuser(email, password, **extra_fields)
-        Creates and returns a superuser with the given email and password.
-    """
-
-    def create_user(self, email, password, **extra_fields):
-
-        """
-        Creates and returns a regular user with the given email and password.
-
-        Parameters
-        ----------
-        email : str
-            The email address of the user.
-        password : str
-            The password for the user.
-        **extra_fields : dict
-            Additional fields for the user.
-
-        Raises
-        ------
-        ValueError
-            If the email or password is not provided.
-
-        Returns
-        -------
-        user : User
-            The created user instance.
-        """
-
-        extra_fields.setdefault("is_staff", False)
-        extra_fields.setdefault("is_superuser", False)
-        extra_fields.setdefault("is_active", True)
-
-        if email is None or email == "":
-            raise ValueError("Email is a mandatory field1")
-        if password is None or password == "":
-            raise ValueError("Password is a mandatory field1")
-
-        email = self.normalize_email(email)
-
-        user = self.model(email=email, **extra_fields)
-        user.set_password(password)
-
-        user.save()
-        return user
-
-    def create_superuser(self, email, password, **extra_fields):
-
-        """
-        Creates and returns a superuser with the given email and password.
-
-        Parameters
-        ----------
-        email : str
-            The email address of the superuser.
-        password : str
-            The password for the superuser.
-        **extra_fields : dict
-            Additional fields for the superuser.
-
-        Raises
-        ------
-        ValueError
-            If is_staff, is_superuser, or is_active is not set to True.
-
-        Returns
-        -------
-        superuser : User
-            The created superuser instance.
-        """
-
-        extra_fields.setdefault("is_staff", True)
-        extra_fields.setdefault("is_superuser", True)
-        extra_fields.setdefault("is_active", True)
-
-        if extra_fields.get("is_staff") == False:
-            raise ValueError("is_staff must be True for superuser!")
-        if extra_fields.get("is_superuser") == False:
-            raise ValueError("is_superuser must be True for superuser!")
-        if extra_fields.get("is_active") == False:
-            raise ValueError("is_active must be True for superuser!")
-
-        superuser = self.create_user(email, password, **extra_fields)
-        return superuser
-
-
-
-
+from .managers import UserManager
 class User(AbstractBaseUser, PermissionsMixin):
     """
     Custom User model that extends AbstractBaseUser and PermissionsMixin.
@@ -169,3 +72,63 @@ class Profile(models.Model):
         self.full_clean()
         return super().save(*args, **kwargs)
 
+class AssetType(models.Model):
+    """
+    AssetType model represents different types of assets in the inventory management system.
+    Attributes:
+        type (CharField): The main type of the asset. This field is required and must have at least 1 character.
+        sub_type (CharField): The sub-type of the asset. This field is required and must have at least 1 character.
+        group (CharField): The group to which the asset belongs. This field is required and must have at least 1 character.
+        description (TextField): A detailed description of the asset. This field is optional.
+    Properties:
+        code (str): A property that generates a code by extracting parts of the type, sub_type, and group fields.
+    """
+
+
+    type = models.CharField(max_length=225, null=False, blank=False, validators=[MinLengthValidator(1)])
+    sub_type = models.CharField(max_length=225, null=False, blank=False, validators=[MinLengthValidator(1)])
+    group = models.CharField(max_length=225, null=False, blank=False, validators=[MinLengthValidator(1)])
+    description = models.TextField(blank=True, null=True)
+
+    @property
+    def code(self):
+        extract_code = lambda txt_with_code: txt_with_code.split("(")[-1][:-1]
+        type_code = f'{extract_code(self.type)}-{extract_code(self.sub_type)}-{extract_code(self.group)}'
+        return type_code
+
+class Asset(models.Model):
+    """
+    Asset model represents individual assets in the inventory management system.
+    Attributes:
+        name (str): The name of the asset. It is a required field with a maximum length of 100 characters.
+        description (str, optional): A brief description of the asset. This field is optional and can be left blank.
+        quantity (int): The quantity of the asset available in the inventory. It is a required field and must be a non-negative integer.
+        current_owner (User): The current owner of the asset. It is a required field and is linked to the User model.
+        asset_type (AssetType): The type of asset. It is a required field and is linked to the AssetType model.
+        location (str): The location where the asset is stored. It is a required field with a maximum length of 100 characters.
+        manufacturer (str): The manufacturer of the asset. It is a required field with a maximum length of 100 characters.
+    """
+
+    name = models.CharField(max_length=100, null=False, blank=False, validators=[MinLengthValidator(5)])
+    description = models.CharField(max_length=200, blank=True, null=True, validators=[MinLengthValidator(10)])
+    quantity = models.PositiveIntegerField(null=False, blank=False)
+    current_owner = models.ForeignKey(to="core.User", on_delete=models.CASCADE, related_name="assets")
+    asset_type = models.ForeignKey(to="core.AssetType", on_delete=models.CASCADE, related_name="assets")
+    location = models.CharField(max_length=100, null=False, blank=False, validators=[MinLengthValidator(1)])
+    manufacturer = models.CharField(max_length=100, null=False, blank=False, validators=[MinLengthValidator(1)])
+
+
+
+    def save(self, *args, **kwargs):
+        """
+        Save the Asset instance after performing full validation.
+
+        Args:
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+
+        Returns:
+            The saved Asset instance.
+        """
+        self.full_clean()
+        return super().save(*args, **kwargs)
