@@ -3,10 +3,14 @@
 from rest_framework.routers import DefaultRouter
 from django.urls import path, include
 
-from .views import ProfileViewSet
+from .views import ProfileViewSet, SetUserToGroupView
 
 
 router = DefaultRouter(trailing_slash=False)
-router.register('', ProfileViewSet, basename="profile")
+router.register("profile", ProfileViewSet, basename="profile")
+router.register("set", SetUserToGroupView, basename="set-group")
 
-urlpatterns = [path("", include(router.urls))]
+
+urlpatterns = [
+    path("", include(router.urls)),
+]

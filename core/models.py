@@ -91,10 +91,11 @@ class AssetType(models.Model):
     description = models.TextField(blank=True, null=True)
 
     @property
-    def code(self):
+    def code(self) -> str:
         extract_code = lambda txt_with_code: txt_with_code.split("(")[-1][:-1]
         type_code = f'{extract_code(self.type)}-{extract_code(self.sub_type)}-{extract_code(self.group)}'
         return type_code
+
 
 class Asset(models.Model):
     """

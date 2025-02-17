@@ -15,13 +15,14 @@ djoser_urls = [
 ]
 
 swagger_urls = [
-    path('schema/', SpectacularAPIView.as_view(), name='schema'),
-    path('doc', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
-    path('redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+    path('api/schema', SpectacularAPIView.as_view(), name='schema'),
+    path('api/doc', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('api/redoc', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 ]
 
 app_urls = [
-    path('profile/', include('userprofile.urls')),
+    path('user/', include('userprofile.urls')),
+    path('', include('asset.urls')),
 ]
 
 urlpatterns = [path('admin/', admin.site.urls)] + \
