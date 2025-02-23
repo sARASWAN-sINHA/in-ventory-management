@@ -7,8 +7,24 @@ from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.core.validators import MinLengthValidator
 
 from .managers import UserManager
+
+
+
+class BaseModel(models.Model):
+    """
+    Abstract model that contains common fields for all models.
+    Attributes:
+        created_at (DateTimeField): The date and time when the record was created. Auto-generated.
+        modified_at (DateTimeField): The date and time when the record was last modified. Auto-generated.
+    """
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        abstract = True
 class User(AbstractBaseUser, PermissionsMixin):
     """
+
     Custom User model that extends AbstractBaseUser and PermissionsMixin.
     Attributes:
         email (EmailField): The unique email address used as the identifier for the user.
@@ -16,6 +32,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         is_active (BooleanField): Indicates whether the user account is active. Defaults to True.
         is_staff (BooleanField): Indicates whether the user has staff status. Defaults to False.
         is_superuser (BooleanField): Indicates whether the user has superuser status. Defaults to False.
+        created_by (ForeignKey): The user who created this record. Defaults to the user who created the record.
+
     Methods:
         None
     Meta:
@@ -29,12 +47,14 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
 
+    created_by = models.ForeignKey(to="core.User", on_delete=models.CASCADE, related_name="created_users", null=True, blank=True)
+
     objects = UserManager()
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["password"]
 
-class Profile(models.Model):
+class Profile(BaseModel):
 
     """
     Profile model to store additional information about the user.
@@ -72,7 +92,7 @@ class Profile(models.Model):
         self.full_clean()
         return super().save(*args, **kwargs)
 
-class AssetType(models.Model):
+class AssetType(BaseModel):
     """
     AssetType model represents different types of assets in the inventory management system.
     Attributes:
@@ -97,7 +117,7 @@ class AssetType(models.Model):
         return type_code
 
 
-class Asset(models.Model):
+class Asset(BaseModel):
     """
     Asset model represents individual assets in the inventory management system.
     Attributes:

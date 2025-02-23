@@ -47,6 +47,7 @@ THIRD_PARTY_APPS = [
     "rest_framework",
     "djoser",
     "drf_spectacular",
+    "django_filters"
 ]
 
 INSTALLED_APPS = DJANGO_INBUILT_APPS + DJANGO_CUSTOM_APPS + THIRD_PARTY_APPS

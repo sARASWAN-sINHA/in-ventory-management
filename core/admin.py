@@ -1,5 +1,8 @@
 from django.contrib import admin
 
-from core.models import User
+from django.contrib.auth import get_user_model
+
+from .models import Asset, User
 
 admin.site.register(User)
+admin.site.register(Asset)

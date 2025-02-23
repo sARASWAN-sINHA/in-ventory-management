@@ -26,9 +26,7 @@ class AssetSerializer(serializers.ModelSerializer):
             "quantity",
             "location",
             "manufacturer",
-
             "current_owner",
-
             "asset_type",
             "asset_type_id",
         )
@@ -37,4 +35,19 @@ class AssetSerializer(serializers.ModelSerializer):
         repr = super().to_representation(instance)
         repr.get("asset_type").pop("id")
         return repr
+
+
+class AssetAssignSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField()
+    requisitions = serializers.ListField()
+
+
+class AssetTypeGetCode(serializers.ModelSerializer):
+     class Meta:
+        model = AssetType
+        fields = ("type", "sub_type", "group",)
+
+
+
+
 
