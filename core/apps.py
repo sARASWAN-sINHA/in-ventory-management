@@ -6,5 +6,5 @@ class CoreConfig(AppConfig):
     name = 'core'
 
     def ready(self):
-        import core.signals
+        from core.signals import assign_user_to_normal_group
         return super().ready()

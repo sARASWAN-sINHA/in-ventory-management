@@ -1,11 +1,12 @@
 '''Models for the project are defined here.'''
 
 
+import datetime
 import uuid
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.core.validators import MinLengthValidator
-
+from django.utils import timezone
 from .managers import UserManager
 
 
@@ -153,3 +154,32 @@ class Asset(BaseModel):
         """
         self.full_clean()
         return super().save(*args, **kwargs)
+
+
+
+class AssetOwnerHistory(BaseModel):
+
+    """
+    AssetOwnerHistory model to track the ownership history of assets.
+    Attributes:
+        user (ForeignKey): A reference to the User who owns the asset.
+        asset (ForeignKey): A reference to the Asset being owned.
+        start_date (DateTimeField): The date and time when the user started owning the asset.
+        end_date (DateTimeField): The date and time when the user stopped owning the asset.
+    """
+
+    user = models.ForeignKey(to="core.User", related_name="asset_history", on_delete=models.DO_NOTHING, null=True)
+    asset = models.ForeignKey(to="core.Asset", related_name="user_history", on_delete=models.DO_NOTHING, null=True)
+    start_date = models.DateTimeField(default=timezone.now)
+    end_date = models.DateTimeField(default=datetime.datetime(2999, 1, 1))
+    requisition_qunatity = models.PositiveIntegerField(null=False, blank=False)
+
+
+
+class AssetFileUploadHistory(models.Model):
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    uploaded_by = models.ForeignKey(to="core.User", related_name="file_upload_history", on_delete=models.DO_NOTHING, null=True)
+    uploaded_file = models.FileField(upload_to="uploaded-files")
+    validated_file = models.FileField(upload_to="validated-files", null=True)
+
+

@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 def response(
     detail: str,
-    data: dict,
+    data: dict | list,
     message: str | None,
     code: int = status.HTTP_200_OK
 ):
@@ -17,8 +17,6 @@ def response(
     )
 
     if not message:
-        print("***$$$$HERE$$$$***")
-        print(response_dict)
         return Response(
             response_dict,
             status=code,

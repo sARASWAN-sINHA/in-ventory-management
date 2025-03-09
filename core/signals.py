@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 
 from .services.users import UserService
 
-@receiver(post_save, sender=get_user_model)
+@receiver(post_save, sender=get_user_model())
 def assign_user_to_normal_group(sender, instance, created, **kwargs):
     if created:
         UserService.add_user_to_group(instance, "Asset User")

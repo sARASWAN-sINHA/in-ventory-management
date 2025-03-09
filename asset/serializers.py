@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from core.models import Asset, AssetType
+from core.models import Asset, AssetType, AssetFileUploadHistory
 from userprofile.serializers import CustomUserSerialzer
 
 
@@ -37,9 +37,16 @@ class AssetSerializer(serializers.ModelSerializer):
         return repr
 
 
+
+class RequisitionSerialzier(serializers.ListField):
+        asset_id=serializers.IntegerField()
+        quantity=serializers.IntegerField()
+        start_date=serializers.DateTimeField()
+        end_date=serializers.DateTimeField()
+
 class AssetAssignSerializer(serializers.Serializer):
     user_id = serializers.IntegerField()
-    requisitions = serializers.ListField()
+    requisitions = RequisitionSerialzier()
 
 
 class AssetTypeGetCode(serializers.ModelSerializer):
@@ -49,5 +56,15 @@ class AssetTypeGetCode(serializers.ModelSerializer):
 
 
 
+class AssetFileUploadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AssetFileUploadHistory
+        fields = ["uploaded_file",]
 
+class AssetValidatedFileUploadSerialzier(serializers.ModelSerializer):
+    uploaded_at = serializers.DateTimeField(read_only=True)
+    uploaded_by = CustomUserSerialzer(read_only=True)
+    class Meta:
+        model = AssetFileUploadHistory
+        fields = ["uploaded_file", "validated_file", "uploaded_at", "uploaded_by"]
 

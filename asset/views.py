@@ -1,11 +1,13 @@
-from rest_framework.viewsets import ModelViewSet
+from rest_framework.viewsets import ModelViewSet, ViewSet
 from rest_framework.permissions import IsAuthenticated, IsAdminUser as IsSuperUser
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter, SearchFilter
+from rest_framework.parsers import MultiPartParser, FormParser
 
 from core.models import AssetType, Asset
 from core.permissions import IsAssetAdmin, IsAssetModerator
 from core.services.assets import AssetService
+from core.services.files import FileService
 from core.services.users import UserService
 from core.messages import (
     response_bad_request,
@@ -26,10 +28,15 @@ from .serializers import (
     AssetSerializer,
     AssetTypeGetCode,
     AssetTypeSerializer,
+    AssetFileUploadSerializer,
+    AssetValidatedFileUploadSerialzier
 )
 
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
+from django.http import HttpResponse
+
+
 from drf_spectacular.utils import extend_schema
 from django_filters.rest_framework import DjangoFilterBackend
 
@@ -69,6 +76,7 @@ class AssetTypeViewSet(ModelViewSet):
     def get_code(self, request):
         seriallized_request = AssetTypeGetCode(data=request.data)
         seriallized_request.is_valid(raise_exception=True)
+
         type = seriallized_request.validated_data.get("type")
         sub_type = seriallized_request.validated_data.get("sub_type")
         group = seriallized_request.validated_data.get("group")
@@ -112,7 +120,8 @@ class AssetViewSet(ModelViewSet):
         "location",
         "manufacturer",
         "current_owner",
-        "asset_type"
+        "asset_type",
+        "quantity",
     )
 
     def get_permissions(self):
@@ -148,8 +157,8 @@ class AssetViewSet(ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        if AssetService.check_qunatity_greater_than_zero(
-            request.validated_data.get("quantity")
+        if not AssetService.check_qunatity_greater_than_zero(
+            serializer.validated_data.get("quantity")
         ):
             raise_400_exception("Quantity must be greater than 0")
 
@@ -182,7 +191,7 @@ class AssetViewSet(ModelViewSet):
     @action(
         detail=False,
         methods=["POST"],
-        permission_classes=[IsAuthenticated, (IsAssetAdmin | IsAssetModerator)],
+        permission_classes=[IsAuthenticated, (IsAssetAdmin | IsAssetModerator) | IsSuperUser],
     )
     def assign(self, request):
 
@@ -197,34 +206,93 @@ class AssetViewSet(ModelViewSet):
         if user == "User not found":
             raise_404_exception(detail=f"User with id: {user_id} not found!")
 
-        validation_success, validation_result = AssetService.validate_requisitions(
-            requisitions
-        )
+        validation_success, validation_result = AssetService.validate_requisitions(requisitions)
+        print(validation_success, validation_result)
 
-        if validation_success:
+        if validation_success is True:
             AssetService.assign(user, validation_result)
             return response_ok(detail="Asset(s) assigned to user succesfully!", data={})
         else:
-            validation_errors = validation_result.get("validation_errors")
-            bad_request_errors = validation_result.get("bad_request_errors")
+            validation_errors = validation_result.get("validation_errors", [])
+            quantity_validation_errors = validation_result.get("quantity_validation_errors", [])
+            date_validation_error = validation_result.get("date_validation_error", [])
+            error_mssgs = []
+
+            print(validation_errors, quantity_validation_errors, date_validation_error)
 
             if len(validation_errors):
-                raise_404_exception(
-                    detail="Invalid asset ID received.",
-                    data=list(
+
+                error_mssgs +=list(
                         map(
-                            lambda asset_id: f"No asset with id: {asset_id}",
+                            lambda x: f"{x[1]}: {x[0]}",
                             validation_errors,
                         )
                     ),
+            if len(quantity_validation_errors):
+
+                error_mssgs += list(
+                    map(
+                        lambda x: f"{x[1]}: {x[0]}",
+                        quantity_validation_errors,
+                    )
                 )
-            if len(bad_request_errors):
-                return response_bad_request(
-                    detail="Invalid requisition qunatity.",
-                    data=list(
-                        map(
-                            lambda asset_id: f"Requisition quantity is more than available quantity for asset with id: {asset_id}",
-                            bad_request_errors,
-                        )
-                    ),
+
+            if len(date_validation_error):
+                error_mssgs += list(
+                    map(
+                        lambda x: f"{x[1]}: {x[0]}",
+                        date_validation_error,
+                    )
                 )
+
+            return response_bad_request(
+                detail="Invalid requisition values.", data=error_mssgs
+            )
+
+
+class AssetFileViewSet(ViewSet):
+    parser_classes = [MultiPartParser, FormParser]
+    permission_classes = [IsSuperUser | IsAssetAdmin]
+
+    @action(detail=False, methods=["GET"], url_path="template/download")
+    def download_template_file(self, request):
+        response = None
+        filename = "template.csv"
+        try:
+            file = FileService.download_template_file()
+            response = HttpResponse(content_type="text/csv")
+            response["Content-Disposition"] = f"attachment; filename={filename};"
+            file.to_csv(response, index=False)
+        except Exception as e:
+            response = response_bad_request(detail=str(e), data={})
+        return response
+
+    @action(detail=False, methods=["POST"], url_path="upload")
+    def upload_file(self, request):
+        # [TODO] FIX THE DATE ISSUE IN "validate_file" function.
+        #
+        # The dates are expected to be in "yyyy-mm-dd" format but they are rendered as "dd-mm-yyy" in csv.
+        # Find a way to fix this.
+        #
+        #
+        serializer = AssetFileUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        uploaded_file = serializer.validated_data.get("uploaded_file")
+
+        validation_status, updated_file = FileService.validate_file(uploaded_file)
+        if validation_status:
+            serializer = AssetValidatedFileUploadSerialzier(
+                data={
+                    "uploaded_file": uploaded_file,
+                    "validated_file": updated_file,
+                }
+            )
+            serialized_instance = serializer.save(uploaded_by=request.user)
+
+            return response_ok(
+                detail="File uploaded and validated succesfully",
+                data=serialized_instance.data,
+            )
+        else:
+            return response_bad_request(detail=f"File upload and validation failed.", data={"message": "Please check the log csv files for more details.. "})
