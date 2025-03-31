@@ -52,7 +52,7 @@ class AssetService:
         errors = []
 
         if start_date > end_date: errors += [("Start date cannot be after end date.", asset.name)]
-        if start_date < datetime.now() - timedelta(days=30): errors += [("Cannot have a start date for a requisition that is over a month old.", asset.name)]
+        if start_date < datetime.now(): errors += [("Start date cannot be in the past.", asset.name)]
         if start_date > datetime.now() + timedelta(days=30): errors += [("Cannot have a start date for a requisition that is over a month for now.", asset.name)]
 
         if errors == []: return "ok"
@@ -157,3 +157,13 @@ class AssetService:
                 assets_and_requisitions
             )
         )
+
+
+class AssetOwnerHistoryService:
+
+    @staticmethod
+    def get_asset_owner_history(asset_id: int):
+        if AssetOwnerHistory.objects.filter(asset=asset_id).exists():
+            return AssetOwnerHistory.objects.filter(asset=asset_id)
+        else:
+            return AssetOwnerHistory.objects.none()

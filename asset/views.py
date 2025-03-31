@@ -1,3 +1,6 @@
+from datetime import datetime
+import os
+from django.conf import settings
 from rest_framework.viewsets import ModelViewSet, ViewSet
 from rest_framework.permissions import IsAuthenticated, IsAdminUser as IsSuperUser
 from rest_framework.decorators import action
@@ -29,7 +32,6 @@ from .serializers import (
     AssetTypeGetCode,
     AssetTypeSerializer,
     AssetFileUploadSerializer,
-    AssetValidatedFileUploadSerialzier
 )
 
 from django.shortcuts import get_object_or_404
@@ -269,30 +271,35 @@ class AssetFileViewSet(ViewSet):
 
     @action(detail=False, methods=["POST"], url_path="upload")
     def upload_file(self, request):
-        # [TODO] FIX THE DATE ISSUE IN "validate_file" function.
-        #
-        # The dates are expected to be in "yyyy-mm-dd" format but they are rendered as "dd-mm-yyy" in csv.
-        # Find a way to fix this.
-        #
-        #
+
         serializer = AssetFileUploadSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         uploaded_file = serializer.validated_data.get("uploaded_file")
 
-        validation_status, updated_file = FileService.validate_file(uploaded_file)
+        validation_status, updated_file_df, totality_check, totality_check_error_messages = FileService.validate_file(uploaded_file)
+
+        file_path = FileService.generate_file_path(request.user.email, uploaded_file)
+
+        #[TODO] Change this to excel.
+        #[TODO] ADD A NEW SHEET IN THE EXCEL FILE WITH THE "totality_check_error_messages", IF ANY.
+        updated_file_df.to_csv(file_path, index=False)
+
+        serialized_instance = serializer.save(uploaded_by=request.user, validated_file=file_path)
+
+        print(f"File upload by {self.request.user.email} at {datetime.now().strftime('%Y-%m-%d_%H-%M-%S')} recorded at {serialized_instance.uploaded_file.path}!")
+
         if validation_status:
-            serializer = AssetValidatedFileUploadSerialzier(
-                data={
-                    "uploaded_file": uploaded_file,
-                    "validated_file": updated_file,
-                }
-            )
-            serialized_instance = serializer.save(uploaded_by=request.user)
+            #
+            # [TODO] Subtract qunatities from assets.
+            #
 
             return response_ok(
-                detail="File uploaded and validated succesfully",
-                data=serialized_instance.data,
+                detail="File validated succesfully. Qunatities updated.",
+                data=serialized_instance.uploaded_file.path,
             )
         else:
-            return response_bad_request(detail=f"File upload and validation failed.", data={"message": "Please check the log csv files for more details.. "})
+            return response_bad_request(
+                detail=f"File validation failed.",
+                data={"message": "Please check the log csv files for more details.. "},
+            )

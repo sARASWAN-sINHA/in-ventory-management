@@ -180,6 +180,6 @@ class AssetFileUploadHistory(models.Model):
     uploaded_at = models.DateTimeField(auto_now_add=True)
     uploaded_by = models.ForeignKey(to="core.User", related_name="file_upload_history", on_delete=models.DO_NOTHING, null=True)
     uploaded_file = models.FileField(upload_to="uploaded-files")
-    validated_file = models.FileField(upload_to="validated-files", null=True)
+    validated_file = models.FileField(null=True)
 
 

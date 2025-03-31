@@ -61,10 +61,3 @@ class AssetFileUploadSerializer(serializers.ModelSerializer):
         model = AssetFileUploadHistory
         fields = ["uploaded_file",]
 
-class AssetValidatedFileUploadSerialzier(serializers.ModelSerializer):
-    uploaded_at = serializers.DateTimeField(read_only=True)
-    uploaded_by = CustomUserSerialzer(read_only=True)
-    class Meta:
-        model = AssetFileUploadHistory
-        fields = ["uploaded_file", "validated_file", "uploaded_at", "uploaded_by"]
-
